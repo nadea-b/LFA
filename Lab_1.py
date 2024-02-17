@@ -26,7 +26,7 @@ class Grammar:
                     string += char
                 else:
                     string += self.generate_string(char)
-                return string
+        return string
 
     def to_finite_automaton(self):
         states = self.VN.union({'x'})  # States consist only of non-terminal symbols
@@ -72,7 +72,7 @@ class FiniteAutomaton:
             self.transition_to_state_with_input(inp)
             if self.current_state is None:
                 return False
-            return self.current_state == 'x'
+        return self.current_state == 'x'
 
 
 def main_menu():
@@ -82,7 +82,7 @@ def main_menu():
     for string in valid_strings:
         print(string)
     automaton = grammar.to_finite_automaton()
-    word = 'cdefd'
+    word = 'dd'
     inp_program = list(word)
     print("Automaton constructed from grammar:")
     for key, value in automaton.transition_function.items():
