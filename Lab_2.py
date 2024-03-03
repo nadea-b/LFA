@@ -42,6 +42,59 @@ def is_deterministic(delta):
     return True
 
 
+def epsilon_closure(state, delta):
+    closure = set()
+    stack = [state]
+
+    while stack:
+        current_state = stack.pop()
+        closure.add(current_state)
+
+        # Check epsilon transitions
+        if (current_state, '') in delta:
+            for next_state in delta[(current_state, '')]:
+                if next_state not in closure:
+                    stack.append(next_state)
+
+    return closure
+
+
+def nfa_to_dfa(Q, sigma, delta, q0, F):
+    dfa_states = set()
+    dfa_sigma = sigma
+    dfa_delta = {}
+    dfa_initial = epsilon_closure(q0, delta)
+    dfa_final = set()
+    stack = [dfa_initial]
+
+    while stack:
+        current_state_set = stack.pop()
+        dfa_states.add(tuple(sorted(current_state_set)))
+
+        # Check if the current state set contains a final state of the NFA
+        if any(state in F for state in current_state_set):
+            dfa_final.add(tuple(sorted(current_state_set)))
+
+        for symbol in dfa_sigma:
+            next_state_set = set()
+
+            for state in current_state_set:
+                if (state, symbol) in delta:
+                    next_state_set.update(delta[(state, symbol)])
+
+            next_state_set_closure = set()
+            for state in next_state_set:
+                next_state_set_closure |= epsilon_closure(state, delta)
+
+            if next_state_set_closure:
+                dfa_delta[(tuple(sorted(current_state_set)), symbol)] = tuple(sorted(next_state_set_closure))
+
+                if tuple(sorted(next_state_set_closure)) not in dfa_states:
+                    stack.append(next_state_set_closure)
+
+    return dfa_states, dfa_sigma, dfa_delta, tuple(sorted(dfa_initial)), dfa_final
+
+
 # Example FA definition
 Q = {'q0', 'q1', 'q2', 'q3', 'q4'}
 sigma = {'a', 'b', 'c', 'd', 'e', 'f'}
@@ -65,3 +118,25 @@ if is_deterministic(delta):
     print("The finite automaton is deterministic.")
 else:
     print("The finite automaton is non-deterministic.")
+
+# Example NFA definition
+Q_nfa = {'q0', 'q1', 'q2'}
+sigma_nfa = {'a', 'b'}
+delta_nfa = {
+    ('q0', 'a'): ['q0', 'q1'],
+    ('q0', ''): ['q1'],
+    ('q1', 'b'): ['q2'],
+    ('q2', 'a'): ['q2']
+}
+q0_nfa = 'q0'
+F_nfa = {'q2'}
+
+# Convert NFA to DFA
+Q_dfa, sigma_dfa, delta_dfa, q0_dfa, F_dfa = nfa_to_dfa(Q_nfa, sigma_nfa, delta_nfa, q0_nfa, F_nfa)
+
+# Print DFA definition
+print("DFA States:", Q_dfa)
+print("DFA Alphabet:", sigma_dfa)
+print("DFA Transition Function:", delta_dfa)
+print("DFA Initial State:", q0_dfa)
+print("DFA Final States:", F_dfa)
