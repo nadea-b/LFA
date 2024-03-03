@@ -26,7 +26,7 @@ class Grammar:
                     string += char
                 else:
                     string += self.generate_string(char)
-        return string
+                return string
 
     def to_finite_automaton(self):
         states = self.VN.union({'x'})  # States consist only of non-terminal symbols
@@ -43,6 +43,21 @@ class Grammar:
         start_state = 'S'
         final_states = {'x'}
         return FiniteAutomaton(states, alphabet, transition_function, start_state, final_states)
+
+    def chomsky_classification(self):
+        if all(len(production) == 2 for productions in self.P.values() for production in productions):
+            return "Type 0: Unrestricted Grammar"
+        elif all(len(production) <= 2 for productions in self.P.values() for production in productions):
+            if all(len(production) == 2 for productions in self.P.values() for production in productions if
+                   all(symbol in self.VT for symbol in production)):
+                return "Type 1: Context-Sensitive Grammar"
+            else:
+                return "Type 2: Context-Free Grammar"
+        elif all(len(production) == 2 for productions in self.P.values() for production in productions if
+                 all(symbol in self.VT for symbol in production)):
+            return "Type 3: Regular Grammar"
+        else:
+            return "The grammar does not fit into any Chomsky hierarchy category"
 
 
 class FiniteAutomaton:
@@ -72,23 +87,27 @@ class FiniteAutomaton:
             self.transition_to_state_with_input(inp)
             if self.current_state is None:
                 return False
-        return self.current_state == 'x'
+            return self.current_state == 'x'
 
 
 def main_menu():
     grammar = Grammar()
     valid_strings = grammar.generate_strings()
-    print(" 5 generated valid strings:")
+    print("5 generated valid strings:")
     for string in valid_strings:
         print(string)
     automaton = grammar.to_finite_automaton()
-    word = 'dd'
+    word = 'cdefd'
     inp_program = list(word)
     print("Automaton constructed from grammar:")
     for key, value in automaton.transition_function.items():
         print(f"({key[0]}, '{key[1]}') -> {value}")
     print("Accepts '", word, "' ?", automaton.run_with_input_list(inp_program))
 
+    # Classify the grammar
+    classification = grammar.chomsky_classification()
+    print("Grammar classification according to Chomsky hierarchy:", classification)
 
 if __name__ == "__main__":
     main_menu()
+
