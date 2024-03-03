@@ -94,6 +94,38 @@ def nfa_to_dfa(Q, sigma, delta, q0, F):
 
     return dfa_states, dfa_sigma, dfa_delta, tuple(sorted(dfa_initial)), dfa_final
 
+import matplotlib.pyplot as plt
+import networkx as nx
+
+def draw_fa(Q, delta, q0, F):
+    # Create a directed graph
+    G = nx.DiGraph()
+
+    # Add states as nodes
+    for state in Q:
+        if state in F:
+            G.add_node(state, color='pink', style='filled', shape='doublecircle')
+        else:
+            G.add_node(state, color='turquoise', style='filled', shape='circle')
+
+    # Add transitions as edges
+    for (state, symbol), next_states in delta.items():
+        for next_state in next_states:
+            G.add_edge(state, next_state, label=symbol)
+
+    # Highlight initial state
+    G.nodes[q0]['color'] = 'lightgreen'
+
+    # Define node and edge attributes
+    node_colors = [G.nodes[node]['color'] for node in G.nodes()]
+    edge_labels = {(u, v): d['label'] for u, v, d in G.edges(data=True)}
+
+    # Draw the graph
+    pos = nx.spring_layout(G)
+    nx.draw(G, pos, with_labels=True, node_color=node_colors, node_size=1000, arrows=True)
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+    plt.show()
+
 
 # Example FA definition
 Q = {'q0', 'q1', 'q2', 'q3', 'q4'}
@@ -140,3 +172,6 @@ print("DFA Alphabet:", sigma_dfa)
 print("DFA Transition Function:", delta_dfa)
 print("DFA Initial State:", q0_dfa)
 print("DFA Final States:", F_dfa)
+
+# Draw FA
+draw_fa(Q, delta, q0, F)
