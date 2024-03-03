@@ -31,6 +31,17 @@ def fa_to_regular_grammar(Q, sigma, delta, q0, F):
     return grammar_productions
 
 
+def is_deterministic(delta):
+    # Iterate over each transition
+    for (state, symbol), next_states in delta.items():
+        # Check if there are multiple next states for the same input symbol
+        if len(next_states) > 1:
+            return False
+
+    # If no transition has multiple next states for the same input symbol, the FA is deterministic
+    return True
+
+
 # Example FA definition
 Q = {'q0', 'q1', 'q2', 'q3', 'q4'}
 sigma = {'a', 'b', 'c', 'd', 'e', 'f'}
@@ -48,3 +59,9 @@ F = {'q4'}
 regular_grammar = fa_to_regular_grammar(Q, sigma, delta, q0, F)
 for production in regular_grammar:
     print(production)
+
+# Check if the FA is deterministic
+if is_deterministic(delta):
+    print("The finite automaton is deterministic.")
+else:
+    print("The finite automaton is non-deterministic.")
