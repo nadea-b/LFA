@@ -21,6 +21,7 @@ class Token:
         return f'Token({self.type}, {self.value})'
 
 # Lexer class to tokenize input text
+# Lexer class to tokenize input text
 class Lexer:
     def __init__(self, text):
         self.text = text
@@ -43,31 +44,32 @@ class Lexer:
                     self.pos += 1
                 return Token(TOKEN_INT, self.text[start_pos:self.pos])
 
-            if current_char == '+':
+            elif current_char == '+':
                 self.pos += 1
                 return Token(TOKEN_PLUS, current_char)
 
-            if current_char == '-':
+            elif current_char == '-':
                 self.pos += 1
                 return Token(TOKEN_MINUS, current_char)
 
-            if current_char == '*':
+            elif current_char == '*':
                 self.pos += 1
                 return Token(TOKEN_MULTIPLY, current_char)
 
-            if current_char == '/':
+            elif current_char == '/':
                 self.pos += 1
                 return Token(TOKEN_DIVIDE, current_char)
 
-            if current_char == '(':
+            elif current_char == '(':
                 self.pos += 1
                 return Token(TOKEN_LPAREN, current_char)
 
-            if current_char == ')':
+            elif current_char == ')':
                 self.pos += 1
                 return Token(TOKEN_RPAREN, current_char)
 
-            self.error()
+            else:
+                self.error()
 
         return Token(None, None)
 
