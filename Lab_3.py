@@ -21,7 +21,6 @@ class Token:
         return f'Token({self.type}, {self.value})'
 
 # Lexer class to tokenize input text
-# Lexer class to tokenize input text
 class Lexer:
     def __init__(self, text):
         self.text = text
@@ -73,6 +72,7 @@ class Lexer:
 
         return Token(None, None)
 
+
 # Sample usage
 def main():
     text = input("Enter an expression: ")
@@ -88,6 +88,7 @@ def main():
     print("Tokens:")
     for token in tokens:
         print(token)
+
 
 if __name__ == "__main__":
     main()
