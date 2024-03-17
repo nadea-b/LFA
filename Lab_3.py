@@ -1,5 +1,3 @@
-import re
-
 # Define token types
 TOKEN_INT = 'INT'
 TOKEN_PLUS = 'PLUS'
@@ -9,16 +7,9 @@ TOKEN_DIVIDE = 'DIVIDE'
 TOKEN_LPAREN = 'LPAREN'
 TOKEN_RPAREN = 'RPAREN'
 
-# Define regular expressions for each token type
-TOKEN_REGEX = [
-    (TOKEN_INT, r'\d+'),
-    (TOKEN_PLUS, r'\+'),
-    (TOKEN_MINUS, r'-'),
-    (TOKEN_MULTIPLY, r'\*'),
-    (TOKEN_DIVIDE, r'/'),
-    (TOKEN_LPAREN, r'\('),
-    (TOKEN_RPAREN, r'\)'),
-]
+# Define a function to check if a character is a digit
+def is_digit(char):
+    return '0' <= char <= '9'
 
 # Token class to represent individual tokens
 class Token:
@@ -39,19 +30,46 @@ class Lexer:
         raise Exception('Invalid character')
 
     def get_next_token(self):
-        if self.pos >= len(self.text):
-            return Token(None, None)
+        while self.pos < len(self.text):
+            current_char = self.text[self.pos]
 
-        for token_type, regex_pattern in TOKEN_REGEX:
-            regex = re.compile('^' + regex_pattern)
-            match = regex.match(self.text[self.pos:])
-            if match:
-                value = match.group(0)
-                token = Token(token_type, value)
-                self.pos += len(value)
-                return token
+            if current_char.isspace():
+                self.pos += 1
+                continue
 
-        self.error()
+            if is_digit(current_char):
+                start_pos = self.pos
+                while self.pos < len(self.text) and is_digit(self.text[self.pos]):
+                    self.pos += 1
+                return Token(TOKEN_INT, self.text[start_pos:self.pos])
+
+            if current_char == '+':
+                self.pos += 1
+                return Token(TOKEN_PLUS, current_char)
+
+            if current_char == '-':
+                self.pos += 1
+                return Token(TOKEN_MINUS, current_char)
+
+            if current_char == '*':
+                self.pos += 1
+                return Token(TOKEN_MULTIPLY, current_char)
+
+            if current_char == '/':
+                self.pos += 1
+                return Token(TOKEN_DIVIDE, current_char)
+
+            if current_char == '(':
+                self.pos += 1
+                return Token(TOKEN_LPAREN, current_char)
+
+            if current_char == ')':
+                self.pos += 1
+                return Token(TOKEN_RPAREN, current_char)
+
+            self.error()
+
+        return Token(None, None)
 
 # Sample usage
 def main():
