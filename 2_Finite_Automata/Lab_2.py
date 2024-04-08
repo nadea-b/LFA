@@ -27,7 +27,6 @@ def fa_to_regular_grammar(Q, sigma, delta, q0, F):
     # Add final state productions
     for state in F:
         grammar_productions.append(f"{state} -> ε")
-
     return grammar_productions
 
 

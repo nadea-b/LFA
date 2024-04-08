@@ -1,0 +1,39 @@
+import itertools
+
+# Function to generate valid combinations for the first regular expression
+def generate_combinations_regex1():
+    symbols = ['m', 'n', 'o', 'p', 'q', 'r']
+    combinations = itertools.product(symbols, repeat=5)
+    valid_combinations = []
+    for combo in combinations:
+        if combo.count('n') == 2 and combo.count('o') + combo.count('p') == 3:
+            valid_combinations.append(''.join(combo))
+    return valid_combinations
+
+# Function to generate valid combinations for the second regular expression
+def generate_combinations_regex2():
+    symbols = ['x', 'y', 'z', '8', '9', 'o']
+    combinations = itertools.product(symbols, repeat=6)
+    valid_combinations = []
+    for combo in combinations:
+        if combo.count('8') >= 1 and (combo.count('9') + combo.count('o')) == 2:
+            valid_combinations.append(''.join(combo))
+    return valid_combinations
+
+# Function to generate valid combinations for the third regular expression
+def generate_combinations_regex3():
+    symbols = ['h', 'i', 'j', 'k', 'l', 'n']
+    combinations = itertools.product(symbols, repeat=4)
+    valid_combinations = []
+    for combo in combinations:
+        if combo.count('l') >= 1 and combo.count('n') <= 1:
+            valid_combinations.append(''.join(combo))
+    return valid_combinations
+
+# Printing valid combinations for each regular expression
+print("Valid combinations for the first regular expression:")
+print(generate_combinations_regex1())
+print("\nValid combinations for the second regular expression:")
+print(generate_combinations_regex2())
+print("\nValid combinations for the third regular expression:")
+print(generate_combinations_regex3())
