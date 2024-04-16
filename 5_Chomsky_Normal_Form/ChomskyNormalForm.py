@@ -181,6 +181,36 @@ class GrammarTransformer:
         return self.prettyForm(self.Productions)
 
 
+
+
+import unittest
+
+class TestGrammarTransformer(unittest.TestCase):
+    def setUp(self):
+        self.transformer = GrammarTransformer()
+
+    def test_transform_grammar(self):
+        # Define input model path
+        model_path = 'model.txt'
+
+        # Define expected output
+        expected_output = """S -> B A | b | B S
+A -> A S | b | Z D | B A1 | B A | b | B S | b | B S
+A1 -> A A2 | A B | b | B S
+A2 -> A B | b | B S
+C -> A B | b | B S
+Z -> a
+B -> b | B S
+D -> B B
+S0 -> B A | b | B S
+"""
+
+        # Transform the grammar
+        transformed_grammar = self.transformer.transform_grammar(model_path)
+
+        # Assert that the transformed grammar matches the expected output
+        self.assertEqual(transformed_grammar, expected_output)
+
 if __name__ == '__main__':
     transformer = GrammarTransformer()
     if len(sys.argv) > 1:
@@ -189,6 +219,7 @@ if __name__ == '__main__':
         modelPath = 'model.txt'
 
     transformed_grammar = transformer.transform_grammar(modelPath)
-    print(transformed_grammar)
-    print(len(transformer.Productions))
-    open('out.txt', 'w').write(transformed_grammar)
+    #print(transformed_grammar)
+   # print(len(transformer.Productions))
+    #open('out.txt', 'w').write(transformed_grammar)
+    unittest.main()
