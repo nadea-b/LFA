@@ -1,108 +1,194 @@
-import re
-import unittest
+import sys
+import itertools
 
-class CNFConverter:
-    def __init__(self, grammar):
-        self.grammar = grammar
 
-    def normalize_grammar(self):
-        non_terminal = re.compile('[A-Z]')
-        new_grammar = {}
+class GrammarTransformer:
+    def __init__(self):
+        self.left, self.right = 0, 1
+        self.K, self.V, self.Productions = [], [], []
+        self.variablesJar = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R",
+                             "S", "T", "U", "W", "X", "Y", "Z"]
 
-        # Step 1: Eliminate ε-productions
-        epsilon_productions = {nonterm for nonterm, rules in self.grammar.items() if '' in rules}
-        for nonterm, rules in list(self.grammar.items()):  # Iterate over a copy of the dictionary keys
-            new_rules = [rule for rule in rules if rule != '']
+    def isUnitary(self, rule, variables):
+        if rule[self.left] in variables and rule[self.right][0] in variables and len(rule[self.right]) == 1:
+            return True
+        return False
+
+    def isSimple(self, rule):
+        if rule[self.left] in self.V and rule[self.right][0] in self.K and len(rule[self.right]) == 1:
+            return True
+        return False
+
+    def START(self, productions, variables):
+        variables.append('S0')
+        return [('S0', [variables[0]])] + productions
+
+    def TERM(self, productions, variables):
+        newProductions = []
+        dictionary = self.setupDict(productions, variables, terms=self.K)
+        for production in productions:
+            if self.isSimple(production):
+                newProductions.append(production)
+            else:
+                for term in self.K:
+                    for index, value in enumerate(production[self.right]):
+                        if term == value and term not in dictionary:
+                            dictionary[term] = self.variablesJar.pop()
+                            self.V.append(dictionary[term])
+                            newProductions.append((dictionary[term], [term]))
+                            production[self.right][index] = dictionary[term]
+                        elif term == value:
+                            production[self.right][index] = dictionary[term]
+                newProductions.append((production[self.left], production[self.right]))
+        return newProductions
+
+    def BIN(self, productions, variables):
+        result = []
+        for production in productions:
+            k = len(production[self.right])
+            if k <= 2:
+                result.append(production)
+            else:
+                newVar = self.variablesJar.pop(0)
+                variables.append(newVar + '1')
+                result.append((production[self.left], [production[self.right][0]] + [newVar + '1']))
+                for i in range(1, k - 2):
+                    var, var2 = newVar + str(i), newVar + str(i + 1)
+                    variables.append(var2)
+                    result.append((var, [production[self.right][i], var2]))
+                result.append((newVar + str(k - 2), production[self.right][k - 2:k]))
+        return result
+
+    def DEL(self, productions):
+        newSet = []
+        outlaws, productions = self.seekAndDestroy(target='e', productions=productions)
+        for outlaw in outlaws:
+            for production in productions + [e for e in newSet if e not in productions]:
+                if outlaw in production[self.right]:
+                    newSet = newSet + [e for e in self.rewrite(outlaw, production) if e not in newSet]
+        return newSet + ([productions[i] for i in range(len(productions)) if productions[i] not in newSet])
+
+    def unit_routine(self, rules, variables):
+        unitaries, result = [], []
+        for aRule in rules:
+            if self.isUnitary(aRule, variables):
+                unitaries.append((aRule[self.left], aRule[self.right][0]))
+            else:
+                result.append(aRule)
+        for uni in unitaries:
             for rule in rules:
-                for epsilon in epsilon_productions:
-                    if epsilon in rule:
-                        new_rules.extend([rule.replace(epsilon, '', 1)])
-            new_grammar[nonterm] = new_rules
+                if uni[self.right] == rule[self.left] and uni[self.left] != rule[self.left]:
+                    result.append((uni[self.left], rule[self.right]))
+        return result
 
-        # Step 2: Eliminate unit productions
-        unit_productions = {nonterm: [rule[0] for rule in rules if len(rule) == 1 and rule[0] in non_terminal.pattern]
-                            for nonterm, rules in self.grammar.items()}
-        for nonterm, rules in list(self.grammar.items()):  # Iterate over a copy of the dictionary keys
-            for unit in unit_productions[nonterm]:
-                new_rules = self.grammar.get(unit, [])
-                new_grammar[nonterm].extend(new_rules)
+    def union(self, lst1, lst2):
+        final_list = list(set().union(lst1, lst2))
+        return final_list
 
-        # Step 3: Eliminate non-simple productions
-        for nonterm, rules in list(self.grammar.items()):  # Iterate over a copy of the dictionary keys
-            for rule in rules:
-                if len(rule) > 2:
-                    new_rules = []
-                    for i in range(len(rule) - 2):
-                        new_nonterm = f'NS{i + 1}_{nonterm}_{rule[i]}'
-                        new_grammar[new_nonterm] = [rule[i:i + 2]]
-                        new_rules.append(new_nonterm)
-                    new_rules.append(rule[-2:])
-                    new_grammar[nonterm].remove(rule)
-                    new_grammar[nonterm].extend(new_rules)
+    def loadModel(self, modelPath):
+        file = open(modelPath).read()
+        K = (file.split("Variables:\n")[0].replace("Terminals:\n", "").replace("\n", ""))
+        V = (file.split("Variables:\n")[1].split("Productions:\n")[0].replace("Variables:\n", "").replace("\n", ""))
+        P = (file.split("Productions:\n")[1])
+        self.K = self.cleanAlphabet(K)
+        self.V = self.cleanAlphabet(V)
+        self.Productions = self.cleanProduction(P)
 
-        # Step 4: Convert single terminal productions to non-terminal productions
-        terminal_productions = {nonterm: [rule for rule in rules if len(rule) == 1 and rule.islower()]
-                                for nonterm, rules in new_grammar.items()}
-        terminal_counter = 0
-        for nonterm, rules in list(new_grammar.items()):  # Iterate over a copy of the dictionary keys
-            for rule in rules:
-                if rule in terminal_productions[nonterm]:
-                    if rule in new_grammar:
-                        new_nonterm = f'T_{rule}'
-                    else:
-                        new_nonterm = f'T_{terminal_counter}'
-                        terminal_counter += 1
-                        new_grammar[new_nonterm] = [rule]
-                    new_grammar[nonterm].remove(rule)
-                    new_grammar[nonterm].append(new_nonterm)
+    def cleanProduction(self, expression):
+        result = []
+        rawRulse = expression.replace('\n', '').split(';')
+        for rule in rawRulse:
+            leftSide = rule.split(' -> ')[0].replace(' ', '')
+            rightTerms = rule.split(' -> ')[1].split(' | ')
+            for term in rightTerms:
+                result.append((leftSide, term.split(' ')))
+        return result
 
-        return new_grammar
+    def cleanAlphabet(self, expression):
+        return expression.replace('  ', ' ').split(' ')
 
+    def seekAndDestroy(self, target, productions):
+        trash, erased = [], []
+        for production in productions:
+            if target in production[self.right] and len(production[self.right]) == 1:
+                trash.append(production[self.left])
+            else:
+                erased.append(production)
+        return trash, erased
 
-import unittest
+    def setupDict(self, productions, variables, terms):
+        result = {}
+        for production in productions:
+            if production[self.left] in variables and production[self.right][0] in terms and len(
+                    production[self.right]) == 1:
+                result[production[self.right][0]] = production[self.left]
+        return result
 
+    def rewrite(self, target, production):
+        result = []
+        positions = [i for i, x in enumerate(production[self.right]) if x == target]
+        for i in range(len(positions) + 1):
+            for element in list(itertools.combinations(positions, i)):
+                tadan = [production[self.right][i] for i in range(len(production[self.right])) if i not in element]
+                if tadan != []:
+                    result.append((production[self.left], tadan))
+        return result
 
-class TestCNFConverter(unittest.TestCase):
-    def test_normalize_grammar(self):
-        grammar1 = {'S': ['bA'], 'A': ['B', 'b', 'aD', 'AS', 'bAAB', ''], 'B': ['b', 'bS'], 'C': ['AB'], 'D': ['BB']}
-        converter = CNFConverter(grammar1)
+    def dict2Set(self, dictionary):
+        result = []
+        for key in dictionary:
+            result.append((dictionary[key], key))
+        return result
 
-        normalized_grammar = converter.normalize_grammar()
+    def pprintRules(self, rules):
+        for rule in rules:
+            tot = ""
+            for term in rule[self.right]:
+                tot = tot + " " + term
+            print(rule[self.left] + " -> " + tot)
 
-        expected_normalized_grammar = {
-            'S': ['bA', 'T_0'],
-            'A': ['B', 'aD', 'AS', 'S', 'bAB', 'NS1_A_b', 'NS2_A_A', 'AB', 'T_1'],
-            'B': ['bS', 'T_2'],
-            'C': ['AB', 'B'],
-            'D': ['BB'],
-            'NS1_A_b': ['bA'],
-            'NS2_A_A': ['AA'],
-            'T_0': ['b'],
-            'T_1': ['b'],
-            'T_2': ['b']
-        }
+    def prettyForm(self, rules):
+        dictionary = {}
+        for rule in rules:
+            if rule[self.left] in dictionary:
+                dictionary[rule[self.left]] += ' | ' + ' '.join(rule[self.right])
+            else:
+                dictionary[rule[self.left]] = ' '.join(rule[self.right])
+        result = ""
+        for key in dictionary:
+            result += key + " -> " + dictionary[key] + "\n"
+        return result
 
-        self.assertEqual(normalized_grammar, expected_normalized_grammar)
+    def UNIT(self, productions, variables):
+        i = 0
+        result = self.unit_routine(productions, variables)
+        tmp = self.unit_routine(result, variables)
+        while result != tmp and i < 1000:
+            result = self.unit_routine(tmp, variables)
+            tmp = self.unit_routine(result, variables)
+            i += 1
+        return result
 
-        def test_normalize_grammar2(self):
-            # Define a different grammar (grammar2)
-            grammar2 = {'S': ['AB', 'BC'], 'A': ['a'], 'B': ['b'], 'C': ['c']}
-            converter = CNFConverter(grammar2)
+    def transform_grammar(self, modelPath):
+        self.loadModel(modelPath)
 
-            normalized_grammar = converter.normalize_grammar()
+        self.Productions = self.START(self.Productions, variables=self.V)
+        self.Productions = self.TERM(self.Productions, variables=self.V)
+        self.Productions = self.BIN(self.Productions, variables=self.V)
+        self.Productions = self.DEL(self.Productions)
+        self.Productions = self.UNIT(self.Productions, variables=self.V)
 
-            # Define the expected normalized grammar for grammar2
-            expected_normalized_grammar = {
-                'S': ['AB', 'BC'],
-                'A': ['a'],
-                'B': ['b'],
-                'C': ['c']
-            }
-
-            # Assert that the normalized grammar matches the expected normalized grammar
-            self.assertEqual(normalized_grammar, expected_normalized_grammar)
+        return self.prettyForm(self.Productions)
 
 
 if __name__ == '__main__':
-    unittest.main()
+    transformer = GrammarTransformer()
+    if len(sys.argv) > 1:
+        modelPath = str(sys.argv[1])
+    else:
+        modelPath = 'model.txt'
 
+    transformed_grammar = transformer.transform_grammar(modelPath)
+    print(transformed_grammar)
+    print(len(transformer.Productions))
+    open('out.txt', 'w').write(transformed_grammar)

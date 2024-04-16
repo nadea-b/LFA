@@ -1,0 +1,9 @@
+a b
+Variables:
+S A B C D
+Productions:
+S -> b A;
+A -> B | b | e | a D | A S | b A A B;
+B -> b | b S;
+C -> A B;
+D -> B B
