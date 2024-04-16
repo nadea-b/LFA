@@ -1,5 +1,6 @@
 import sys
 import itertools
+import unittest
 
 
 class GrammarTransformer:
@@ -181,10 +182,6 @@ class GrammarTransformer:
         return self.prettyForm(self.Productions)
 
 
-
-
-import unittest
-
 class TestGrammarTransformer(unittest.TestCase):
     def setUp(self):
         self.transformer = GrammarTransformer()
@@ -231,6 +228,7 @@ S0 -> B A | b | B S
             # Assert that the transformed grammar matches the expected output
             self.assertEqual(transformed_grammar, expected_output)
 
+
 if __name__ == '__main__':
     transformer = GrammarTransformer()
     if len(sys.argv) > 1:
@@ -239,6 +237,6 @@ if __name__ == '__main__':
         modelPath = 'model.txt'
 
     transformed_grammar = transformer.transform_grammar(modelPath)
-    #print(transformed_grammar)
-   # print(len(transformer.Productions))
+    # print(transformed_grammar)
+    # print(len(transformer.Productions))
     unittest.main()
