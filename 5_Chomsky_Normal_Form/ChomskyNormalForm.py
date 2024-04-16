@@ -211,6 +211,26 @@ S0 -> B A | b | B S
         # Assert that the transformed grammar matches the expected output
         self.assertEqual(transformed_grammar, expected_output)
 
+        def test_transform_grammar_model2(self):
+            # Define input model path for the second model
+            model_path = 'model2.txt'
+
+            # Define expected output for the second model
+            expected_output = """A1 -> X Y | X B1 | b | c | Z Y | Y Y | Y S
+    Y -> X B1 | b | c | Z Y | Y Y | Y S
+    Z -> a
+    S -> Z A1
+    X -> Z Y | Y Y
+    B1 -> Y S
+    S0 -> Z A1
+    """
+
+            # Transform the grammar
+            transformed_grammar = self.transformer.transform_grammar(model_path)
+
+            # Assert that the transformed grammar matches the expected output
+            self.assertEqual(transformed_grammar, expected_output)
+
 if __name__ == '__main__':
     transformer = GrammarTransformer()
     if len(sys.argv) > 1:
@@ -221,5 +241,4 @@ if __name__ == '__main__':
     transformed_grammar = transformer.transform_grammar(modelPath)
     #print(transformed_grammar)
    # print(len(transformer.Productions))
-    #open('out.txt', 'w').write(transformed_grammar)
     unittest.main()
