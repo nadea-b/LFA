@@ -1,15 +1,15 @@
 import re
-from enum import Enum
 
-class TokenType(Enum):
-    INT = 'INT'
-    PLUS = 'PLUS'
-    MINUS = 'MINUS'
-    MULTIPLY = 'MULTIPLY'
-    DIVIDE = 'DIVIDE'
-    LPAREN = 'LPAREN'
-    RPAREN = 'RPAREN'
+# Define token types
+TOKEN_INT = r'INT'
+TOKEN_PLUS = r'PLUS'
+TOKEN_MINUS = r'MINUS'
+TOKEN_MULTIPLY = r'MULTIPLY'
+TOKEN_DIVIDE = r'DIVIDE'
+TOKEN_LPAREN = r'LPAREN'
+TOKEN_RPAREN = r'RPAREN'
 
+# Token class to represent individual tokens
 class Token:
     def __init__(self, type, value):
         self.type = type
@@ -17,40 +17,43 @@ class Token:
 
     def __str__(self):
         return f'Token({self.type}, {self.value})'
+
+# Define patterns for token identification
+patterns = [
+    (TOKEN_INT, r'\d+'),
+    (TOKEN_PLUS, r'\+'),
+    (TOKEN_MINUS, r'\-'),
+    (TOKEN_MULTIPLY, r'\*'),
+    (TOKEN_DIVIDE, r'/'),
+    (TOKEN_LPAREN, r'\('),
+    (TOKEN_RPAREN, r'\)'),
+]
+
+# Lexer class to tokenize input text
 class Lexer:
     def __init__(self, text):
         self.text = text
         self.pos = 0
-        self.regex_patterns = [
-            (TokenType.INT, r'\d+'),
-            (TokenType.PLUS, r'\+'),
-            (TokenType.MINUS, r'-'),
-            (TokenType.MULTIPLY, r'\*'),
-            (TokenType.DIVIDE, r'/'),
-            (TokenType.LPAREN, r'\('),
-            (TokenType.RPAREN, r'\)'),
-        ]
 
     def error(self):
         raise Exception('Invalid character')
 
     def get_next_token(self):
         while self.pos < len(self.text):
-            for token_type, pattern in self.regex_patterns:
-                match = re.match(pattern, self.text[self.pos:])
+            current_text = self.text[self.pos:]
+            for token_type, pattern in patterns:
+                match = re.match(pattern, current_text)
                 if match:
                     value = match.group(0)
                     self.pos += len(value)
                     return Token(token_type, value)
 
-            if self.text[self.pos].isspace():
-                self.pos += 1
-                continue
-
+            # If no match found, raise an error
             self.error()
 
         return Token(None, None)
 
+# Define AST node types
 class ASTNode:
     pass
 
@@ -64,108 +67,76 @@ class BinOpNode(ASTNode):
         return f'({self.left} {self.op} {self.right})'
 
 class NumNode(ASTNode):
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, token):
+        self.token = token
+        self.value = token.value
 
     def __str__(self):
         return str(self.value)
 
-class Lexer:
-    def __init__(self, text):
-        self.text = text
-        self.pos = 0
-        self.regex_patterns = [
-            (TokenType.INT, r'\d+'),
-            (TokenType.PLUS, r'\+'),
-            (TokenType.MINUS, r'-'),
-            (TokenType.MULTIPLY, r'\*'),
-            (TokenType.DIVIDE, r'/'),
-            (TokenType.LPAREN, r'\('),
-            (TokenType.RPAREN, r'\)'),
-        ]
-
-    def error(self):
-        raise Exception('Invalid character')
-
-    def get_next_token(self):
-        while self.pos < len(self.text):
-            for token_type, pattern in self.regex_patterns:
-                match = re.match(pattern, self.text[self.pos:])
-                if match:
-                    value = match.group(0)
-                    self.pos += len(value)
-                    if token_type == TokenType.INT:
-                        return Token(token_type, int(value))
-                    else:
-                        return Token(token_type, value)
-
-            if self.text[self.pos].isspace():
-                self.pos += 1
-                continue
-
-            self.error()
-
-        return Token(None, None)
-
+# Parser class to build AST from tokens
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
         self.current_token = None
-        self.index = 0
+        self.token_index = -1
+        self.advance()
 
-    def error(self):
-        raise Exception('Invalid syntax')
-
-    def eat(self, token_type):
-        if self.current_token.type == token_type:
-            self.current_token = self.tokens[self.index]
-            self.index += 1
+    def advance(self):
+        self.token_index += 1
+        if self.token_index < len(self.tokens):
+            self.current_token = self.tokens[self.token_index]
         else:
-            self.error()
+            self.current_token = None
 
-    def factor(self):
-        token = self.current_token
-        if token.type == TokenType.INT:
-            self.eat(TokenType.INT)
-            return NumNode(token.value)
-        elif token.type == TokenType.LPAREN:
-            self.eat(TokenType.LPAREN)
-            node = self.expr()
-            self.eat(TokenType.RPAREN)
-            return node
-
-    def term(self):
-        node = self.factor()
-
-        while self.current_token.type in (TokenType.MULTIPLY, TokenType.DIVIDE):
-            token = self.current_token
-            if token.type == TokenType.MULTIPLY:
-                self.eat(TokenType.MULTIPLY)
-            elif token.type == TokenType.DIVIDE:
-                self.eat(TokenType.DIVIDE)
-
-            node = BinOpNode(left=node, op=token.value, right=self.factor())
-
-        return node
+    def parse(self):
+        return self.expr()
 
     def expr(self):
         node = self.term()
 
-        while self.current_token.type in (TokenType.PLUS, TokenType.MINUS):
+        while self.current_token and self.current_token.type in (TOKEN_PLUS, TOKEN_MINUS):
             token = self.current_token
-            if token.type == TokenType.PLUS:
-                self.eat(TokenType.PLUS)
-            elif token.type == TokenType.MINUS:
-                self.eat(TokenType.MINUS)
-
-            node = BinOpNode(left=node, op=token.value, right=self.term())
+            if token.type == TOKEN_PLUS:
+                self.advance()
+            elif token.type == TOKEN_MINUS:
+                self.advance()
+            right = self.term()
+            node = BinOpNode(node, token.value, right)
 
         return node
 
-    def parse(self):
-        self.current_token = self.tokens[self.index]
-        return self.expr()
+    def term(self):
+        node = self.factor()
 
+        while self.current_token and self.current_token.type in (TOKEN_MULTIPLY, TOKEN_DIVIDE):
+            token = self.current_token
+            if token.type == TOKEN_MULTIPLY:
+                self.advance()
+            elif token.type == TOKEN_DIVIDE:
+                self.advance()
+            right = self.factor()
+            node = BinOpNode(node, token.value, right)
+
+        return node
+
+    def factor(self):
+        token = self.current_token
+
+        if token.type == TOKEN_INT:
+            self.advance()
+            return NumNode(token)
+        elif token.type == TOKEN_LPAREN:
+            self.advance()
+            node = self.expr()
+            if self.current_token.type != TOKEN_RPAREN:
+                raise Exception('Expected RPAREN')
+            self.advance()
+            return node
+        else:
+            raise Exception('Invalid syntax')
+
+# Sample usage
 def main():
     text = input("Enter an expression: ")
     lexer = Lexer(text)
@@ -186,6 +157,7 @@ def main():
 
     print("\nAST:")
     print(ast)
+
 
 if __name__ == "__main__":
     main()
